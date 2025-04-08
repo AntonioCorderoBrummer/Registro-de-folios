@@ -24,6 +24,14 @@
             margin-top: 10px;
             font-size: 1em;
         }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 1em;
+            background-color: #eee;
+            border: 1px solid #aaa;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -36,6 +44,7 @@
 
     <input type="text" id="inputNumero" placeholder="Ingresa un número" />
     <div id="estado"></div>
+    <button onclick="limpiarLista()">🧹 Limpiar lista</button>
 
     <script>
         const numerosIngresados = new Set();
@@ -65,6 +74,13 @@
                 input.value = "";
             }
         });
+
+        function limpiarLista() {
+            numerosIngresados.clear();
+            lista.innerHTML = "";
+            estado.textContent = "🧹 Lista limpiada.";
+            estado.style.color = "blue";
+        }
     </script>
 </body>
 </html>
