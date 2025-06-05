@@ -26,6 +26,7 @@
         }
         button {
             margin-top: 10px;
+            margin-right: 10px;
             padding: 10px;
             font-size: 1em;
             background-color: #eee;
@@ -44,13 +45,26 @@
 
     <input type="text" id="inputNumero" placeholder="Ingresa un número" />
     <div id="estado"></div>
+    
     <button onclick="limpiarLista()">🧹 Limpiar lista</button>
+    <button onclick="descargarLista()">⬇️ Descargar lista</button>
 
     <script>
-        const numerosIngresados = new Set();
+        let numerosIngresados = new Set(JSON.parse(localStorage.getItem("numeros") || "[]"));
         const input = document.getElementById("inputNumero");
         const estado = document.getElementById("estado");
         const lista = document.getElementById("numeros");
+
+        function mostrarLista() {
+            lista.innerHTML = "";
+            numerosIngresados.forEach(n => {
+                const item = document.createElement("li");
+                item.textContent = n;
+                lista.appendChild(item);
+            });
+        }
+
+        mostrarLista();
 
         input.addEventListener("keydown", function(e) {
             if (e.key === "Enter") {
@@ -62,6 +76,7 @@
                     estado.style.color = "red";
                 } else {
                     numerosIngresados.add(valor);
+                    guardarEnLocalStorage();
 
                     const item = document.createElement("li");
                     item.textContent = valor;
@@ -77,9 +92,25 @@
 
         function limpiarLista() {
             numerosIngresados.clear();
+            guardarEnLocalStorage();
             lista.innerHTML = "";
             estado.textContent = "🧹 Lista limpiada.";
             estado.style.color = "blue";
+        }
+
+        function guardarEnLocalStorage() {
+            localStorage.setItem("numeros", JSON.stringify(Array.from(numerosIngresados)));
+        }
+
+        function descargarLista() {
+            const listaComoTexto = Array.from(numerosIngresados).join("\n");
+            const blob = new Blob([listaComoTexto], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "numeros_ingresados.txt";
+            link.click();
+            URL.revokeObjectURL(url);
         }
     </script>
 </body>
