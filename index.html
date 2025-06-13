@@ -14,8 +14,8 @@
       border: 1px solid #ccc;
       padding: 10px;
       min-height: 100px;
-      max-height: 200px;      /* altura máxima visible */
-      overflow-y: auto;       /* scroll cuando hay muchos */
+      max-height: 200px;
+      overflow-y: auto;
     }
     #estado {
       margin-top: 20px;
@@ -84,13 +84,13 @@
     const UID_ADMIN = "AQUI_TU_UID"; // ← reemplaza por tu UID real
     let numerosActuales = [];
 
-    // Mostrar números en orden de ingreso
+    // Mostrar números en orden de ingreso + scroll automático
     db.ref("numeros").on("value", (snapshot) => {
       lista.innerHTML = "";
       const data = snapshot.val();
       numerosActuales = [];
       if (data) {
-        const claves = Object.keys(data); // ← SIN .sort()
+        const claves = Object.keys(data);
         claves.forEach((n) => {
           const li = document.createElement("li");
           li.textContent = n;
@@ -98,6 +98,9 @@
           numerosActuales.push(n);
         });
         ultimoIngresado = claves[claves.length - 1];
+
+        // 👇 Scroll automático al final
+        lista.scrollTop = lista.scrollHeight;
       } else {
         ultimoIngresado = null;
       }
