@@ -1,117 +1,142 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Verificador de Números</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            max-width: 500px;
-            margin: 40px auto;
-        }
-        #lista {
-            border: 1px solid #ccc;
-            padding: 10px;
-            min-height: 100px;
-        }
-        #estado {
-            margin-top: 20px;
-            font-weight: bold;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 1em;
-        }
-        button {
-            margin-top: 10px;
-            margin-right: 10px;
-            padding: 10px;
-            font-size: 1em;
-            background-color: #eee;
-            border: 1px solid #aaa;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Verificador de Números (Firebase)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+    }
+    #lista {
+      border: 1px solid #ccc;
+      padding: 10px;
+      min-height: 100px;
+    }
+    #estado {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 1em;
+    }
+    button {
+      margin-top: 10px;
+      margin-right: 10px;
+      padding: 10px;
+      font-size: 1em;
+      background-color: #eee;
+      border: 1px solid #aaa;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <h1>Verificador de Números</h1>
-    
-    <div id="lista">
-        <strong>Números ingresados:</strong>
-        <ul id="numeros"></ul>
-    </div>
+  <h1>Verificador de Números 🔢</h1>
 
-    <input type="text" id="inputNumero" placeholder="Ingresa un número" />
-    <div id="estado"></div>
-    
-    <button onclick="limpiarLista()">🧹 Limpiar lista</button>
-    <button onclick="descargarLista()">⬇️ Descargar lista</button>
+  <div id="lista">
+    <strong>Números ingresados:</strong>
+    <ul id="numeros"></ul>
+  </div>
 
-    <script>
-        let numerosIngresados = new Set(JSON.parse(localStorage.getItem("numeros") || "[]"));
-        const input = document.getElementById("inputNumero");
-        const estado = document.getElementById("estado");
-        const lista = document.getElementById("numeros");
+  <input type="text" id="inputNumero" placeholder="Ingresa un número" />
+  <div id="estado"></div>
+  <button onclick="borrarUltimo()">↩️ Borrar último</button>
+  <button onclick="solicitarClaveParaLimpiar()">🧹 Limpiar lista (solo admin)</button>
 
-        function mostrarLista() {
-            lista.innerHTML = "";
-            numerosIngresados.forEach(n => {
-                const item = document.createElement("li");
-                item.textContent = n;
-                lista.appendChild(item);
-            });
-        }
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
 
-        mostrarLista();
+  <script>
+    // Configuración de Firebase (tuya)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDe0bmw3ekpgFj3L_T1zvoh4DrScXCaWdI",
+      authDomain: "verificador-numero.firebaseapp.com",
+      databaseURL: "https://verificador-numero-default-rtdb.firebaseio.com",
+      projectId: "verificador-numero",
+      storageBucket: "verificador-numero.firebasestorage.app",
+      messagingSenderId: "255791592832",
+      appId: "1:255791592832:web:4e2681121e27eddab2bd65"
+    };
 
-        input.addEventListener("keydown", function(e) {
-            if (e.key === "Enter") {
-                const valor = input.value.trim();
-                if (!valor) return;
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-                if (numerosIngresados.has(valor)) {
-                    estado.textContent = "❌ Número ya usado.";
-                    estado.style.color = "red";
-                } else {
-                    numerosIngresados.add(valor);
-                    guardarEnLocalStorage();
+    const input = document.getElementById("inputNumero");
+    const estado = document.getElementById("estado");
+    const lista = document.getElementById("numeros");
 
-                    const item = document.createElement("li");
-                    item.textContent = valor;
-                    lista.appendChild(item);
+    let ultimoIngresado = null;
 
-                    estado.textContent = "✅ Número disponible.";
-                    estado.style.color = "green";
-                }
-
-                input.value = "";
-            }
+    // Mostrar los números en tiempo real
+    db.ref("numeros").on("value", (snapshot) => {
+      lista.innerHTML = "";
+      const data = snapshot.val();
+      if (data) {
+        const claves = Object.keys(data).sort();
+        claves.forEach((n) => {
+          const li = document.createElement("li");
+          li.textContent = n;
+          lista.appendChild(li);
         });
+        ultimoIngresado = claves[claves.length - 1]; // Último ingresado
+      } else {
+        ultimoIngresado = null;
+      }
+    });
 
-        function limpiarLista() {
-            numerosIngresados.clear();
-            guardarEnLocalStorage();
-            lista.innerHTML = "";
-            estado.textContent = "🧹 Lista limpiada.";
-            estado.style.color = "blue";
-        }
+    // Ingreso de número
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        const valor = input.value.trim();
+        if (!valor) return;
 
-        function guardarEnLocalStorage() {
-            localStorage.setItem("numeros", JSON.stringify(Array.from(numerosIngresados)));
-        }
+        const numeroRef = db.ref("numeros/" + valor);
+        numeroRef.once("value", (snapshot) => {
+          if (snapshot.exists()) {
+            estado.textContent = "❌ Número ya usado.";
+            estado.style.color = "red";
+          } else {
+            numeroRef.set(true);
+            estado.textContent = "✅ Número disponible.";
+            estado.style.color = "green";
+            ultimoIngresado = valor;
+          }
+          input.value = "";
+        });
+      }
+    });
 
-        function descargarLista() {
-            const listaComoTexto = Array.from(numerosIngresados).join("\n");
-            const blob = new Blob([listaComoTexto], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = "numeros_ingresados.txt";
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-    </script>
+    // 🔐 Borrar toda la lista solo con clave
+    function solicitarClaveParaLimpiar() {
+      const clave = prompt("Introduce la clave secreta para borrar la lista:");
+      if (clave === "Antonio2000") {
+        db.ref("numeros").remove();
+        estado.textContent = "🧹 Lista global limpiada.";
+        estado.style.color = "blue";
+      } else {
+        estado.textContent = "❌ Clave incorrecta. No se ha borrado nada.";
+        estado.style.color = "red";
+      }
+    }
+
+    // ↩️ Borrar el último número ingresado
+    function borrarUltimo() {
+      if (ultimoIngresado) {
+        db.ref("numeros/" + ultimoIngresado).remove();
+        estado.textContent = `❌ Número eliminado: ${ultimoIngresado}`;
+        estado.style.color = "orange";
+      } else {
+        estado.textContent = "⚠️ No hay números para borrar.";
+        estado.style.color = "gray";
+      }
+    }
+  </script>
 </body>
 </html>
