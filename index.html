@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="favicon-v3.png" />
+  <link rel="icon" type="image/png" href="favicon-v2.png" />
   <title>Verificador de Números 🔢</title>
   <style>
     body {
@@ -47,6 +47,8 @@
   </div>
 
   <input type="text" id="inputNumero" placeholder="Ingresa un número" />
+  <button onclick="agregarNumero()">➕ Añadir</button>
+
   <div id="estado">🔓 No autenticado (modo visitante)</div>
   
   <button onclick="borrarUltimo()">↩️ Borrar último</button>
@@ -81,10 +83,9 @@
     const btnBorrar = document.getElementById("btnBorrarLista");
 
     let ultimoIngresado = null;
-    const UID_ADMIN = "AQUI_TU_UID"; // ← reemplaza por tu UID real
+    const UID_ADMIN = "AQUI_TU_UID"; // ← reemplaza con tu UID real
     let numerosActuales = [];
 
-    // Mostrar números en orden de ingreso + scroll automático
     db.ref("numeros").on("value", (snapshot) => {
       lista.innerHTML = "";
       const data = snapshot.val();
@@ -99,38 +100,42 @@
         });
         ultimoIngresado = claves[claves.length - 1];
 
-        // 👇 Scroll automático al final
-        document.getElementById("lista").scrollTop = document.getElementById("lista").scrollHeight;
+        // Scroll automático en contenedor correcto
+        const contenedor = document.getElementById("lista");
+        contenedor.scrollTop = contenedor.scrollHeight;
       } else {
         ultimoIngresado = null;
       }
     });
 
     input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        const valor = input.value.trim();
-        if (!valor) return;
-
-        const numeroRef = db.ref("numeros/" + valor);
-        numeroRef.once("value", (snapshot) => {
-          if (snapshot.exists()) {
-            estado.textContent = "❌ Número ya usado.";
-            estado.style.color = "red";
-          } else {
-            numeroRef.set(true);
-            estado.textContent = "✅ Número disponible.";
-            estado.style.color = "green";
-            ultimoIngresado = valor;
-          }
-          input.value = "";
-        });
-      }
+      if (e.key === "Enter") agregarNumero();
     });
 
+    function agregarNumero() {
+      const valor = input.value.trim();
+      if (!valor) return;
+
+      const numeroRef = db.ref("numeros/" + valor);
+      numeroRef.once("value", (snapshot) => {
+        if (snapshot.exists()) {
+          estado.textContent = "❌ Número ya usado.";
+          estado.style.color = "red";
+        } else {
+          numeroRef.set(true);
+          estado.textContent = "✅ Número disponible.";
+          estado.style.color = "green";
+          ultimoIngresado = valor;
+        }
+        input.value = "";
+      });
+    }
+
     function borrarUltimo() {
-      if (ultimoIngresado) {
-        db.ref("numeros/" + ultimoIngresado).remove();
-        estado.textContent = `❌ Número eliminado: ${ultimoIngresado}`;
+      if (numerosActuales.length > 0) {
+        const ultimo = numerosActuales[numerosActuales.length - 1];
+        db.ref("numeros/" + ultimo).remove();
+        estado.textContent = `❌ Número eliminado: ${ultimo}`;
         estado.style.color = "orange";
       } else {
         estado.textContent = "⚠️ No hay números para borrar.";
@@ -176,7 +181,6 @@
         estado.textContent = "🔓 Has salido del modo admin.";
         estado.style.color = "gray";
         btnBorrar.disabled = true;
-        console.log("Sesión cerrada.");
       }).catch((error) => {
         estado.textContent = "❌ Error al cerrar sesión.";
         estado.style.color = "red";
