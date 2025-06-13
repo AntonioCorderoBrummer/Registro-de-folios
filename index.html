@@ -14,6 +14,8 @@
       border: 1px solid #ccc;
       padding: 10px;
       min-height: 100px;
+      max-height: 200px;      /* altura máxima visible */
+      overflow-y: auto;       /* scroll cuando hay muchos */
     }
     #estado {
       margin-top: 20px;
@@ -50,7 +52,7 @@
   <button onclick="borrarUltimo()">↩️ Borrar último</button>
   <button id="btnBorrarLista" onclick="borrarLista()" disabled>🧹 Borrar lista (solo admin)</button>
   <button onclick="iniciarSesion()">🔐 Iniciar sesión como admin</button>
-  <button onclick="cerrarSesion()">🚪 Cerrar sesión (admin)</button>
+  <button onclick="cerrarSesion()">🚪 Cerrar sesión</button>
   <button onclick="descargarLista()">⬇️ Descargar lista</button>
 
   <!-- Firebase SDKs -->
@@ -79,17 +81,16 @@
     const btnBorrar = document.getElementById("btnBorrarLista");
 
     let ultimoIngresado = null;
-    const UID_ADMIN = "AQUI_TU_UID"; // 🔐 Reemplaza con tu UID real
-
+    const UID_ADMIN = "AQUI_TU_UID"; // ← reemplaza por tu UID real
     let numerosActuales = [];
 
-    // Mostrar números en tiempo real
+    // Mostrar números en orden de ingreso
     db.ref("numeros").on("value", (snapshot) => {
       lista.innerHTML = "";
       const data = snapshot.val();
       numerosActuales = [];
       if (data) {
-        const claves = Object.keys(data).sort();
+        const claves = Object.keys(data); // ← SIN .sort()
         claves.forEach((n) => {
           const li = document.createElement("li");
           li.textContent = n;
