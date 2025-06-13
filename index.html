@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Verificador de Números (Firebase + Auth)</title>
+  <title>Verificador de Números 🔢</title>
   <style>
     body {
       font-family: sans-serif;
@@ -48,12 +48,13 @@
   <button onclick="borrarUltimo()">↩️ Borrar último</button>
   <button onclick="solicitarBorrado()">🧹 Limpiar lista (solo admin)</button>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <!-- Firebase SDKs compatibles con navegador -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
   <script>
+    // Tu configuración de Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDe0bmw3ekpgFj3L_T1zvoh4DrScXCaWdI",
       authDomain: "verificador-numero.firebaseapp.com",
@@ -80,7 +81,7 @@
       .then((result) => {
         const user = result.user;
         currentUID = user.uid;
-        console.log("✅ UID del administrador:", currentUID); // <- AQUÍ ESTÁ TU UID
+        console.log("✅ UID del administrador:", currentUID); // <- COPIA ESTE UID PARA TUS REGLAS
         estado.textContent = `👋 Bienvenido ${user.displayName}`;
         estado.style.color = "blue";
       })
@@ -147,7 +148,7 @@
         return;
       }
 
-      // Verificamos si el UID coincide con el permitido en las reglas
+      // Verificación del UID queda en las reglas de Firebase
       db.ref("control/borrado").set({
         por: currentUID,
         fecha: new Date().toISOString()
