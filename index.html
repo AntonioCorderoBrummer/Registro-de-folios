@@ -49,6 +49,8 @@
   <button onclick="borrarUltimo()">↩️ Borrar último</button>
   <button id="btnBorrarLista" onclick="borrarLista()" disabled>🧹 Borrar lista (solo admin)</button>
   <button onclick="iniciarSesion()">🔐 Iniciar sesión como admin</button>
+  <button onclick="cerrarSesion()">🚪 Cerrar sesión</button>
+  <button onclick="descargarLista()">⬇️ Descargar lista</button>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -76,18 +78,22 @@
     const btnBorrar = document.getElementById("btnBorrarLista");
 
     let ultimoIngresado = null;
-    const UID_ADMIN = "0NKqXpzFa7RRa6lu1AIu7hizMFI3"; // <- Reemplaza esto por tu UID
+    const UID_ADMIN = "AQUI_TU_UID"; // 🔐 Reemplaza con tu UID real
+
+    let numerosActuales = [];
 
     // Mostrar números en tiempo real
     db.ref("numeros").on("value", (snapshot) => {
       lista.innerHTML = "";
       const data = snapshot.val();
+      numerosActuales = [];
       if (data) {
         const claves = Object.keys(data).sort();
         claves.forEach((n) => {
           const li = document.createElement("li");
           li.textContent = n;
           lista.appendChild(li);
+          numerosActuales.push(n);
         });
         ultimoIngresado = claves[claves.length - 1];
       } else {
@@ -143,12 +149,14 @@
       auth.signInWithPopup(provider)
         .then((result) => {
           const user = result.user;
-          console.log("UID:", user.uid);
-          estado.textContent = `👋 Autenticado como: ${user.displayName}`;
-          estado.style.color = "blue";
-
+          console.log("✅ UID:", user.uid);
           if (user.uid === UID_ADMIN) {
+            estado.textContent = `👋 Autenticado como: ${user.displayName}`;
+            estado.style.color = "blue";
             btnBorrar.disabled = false;
+          } else {
+            estado.textContent = "❌ Administrador no reconocido.";
+            estado.style.color = "red";
           }
         })
         .catch((error) => {
@@ -156,6 +164,33 @@
           estado.textContent = "⚠️ Error al iniciar sesión.";
           estado.style.color = "red";
         });
+    }
+
+    function cerrarSesion() {
+      auth.signOut().then(() => {
+        estado.textContent = "🔓 Has salido del modo admin.";
+        estado.style.color = "gray";
+        btnBorrar.disabled = true;
+        console.log("Sesión cerrada.");
+      }).catch((error) => {
+        estado.textContent = "❌ Error al cerrar sesión.";
+        estado.style.color = "red";
+        console.error(error);
+      });
+    }
+
+    function descargarLista() {
+      if (numerosActuales.length === 0) {
+        estado.textContent = "⚠️ La lista está vacía.";
+        estado.style.color = "gray";
+        return;
+      }
+      const contenido = numerosActuales.join("\n");
+      const blob = new Blob([contenido], { type: "text/plain" });
+      const enlace = document.createElement("a");
+      enlace.href = URL.createObjectURL(blob);
+      enlace.download = "numeros.txt";
+      enlace.click();
     }
   </script>
 </body>
