@@ -44,9 +44,11 @@
   </div>
 
   <input type="text" id="inputNumero" placeholder="Ingresa un número" />
-  <div id="estado">Autenticando...</div>
+  <div id="estado">🔓 No autenticado (modo visitante)</div>
+  
   <button onclick="borrarUltimo()">↩️ Borrar último</button>
-  <button onclick="solicitarBorrado()">🧹 Limpiar lista (solo admin)</button>
+  <button id="btnBorrarLista" onclick="borrarLista()" disabled>🧹 Borrar lista (solo admin)</button>
+  <button onclick="iniciarSesion()">🔐 Iniciar sesión como admin</button>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -71,31 +73,12 @@
     const input = document.getElementById("inputNumero");
     const estado = document.getElementById("estado");
     const lista = document.getElementById("numeros");
+    const btnBorrar = document.getElementById("btnBorrarLista");
 
     let ultimoIngresado = null;
-    let currentUID = null;
+    const UID_ADMIN = "TU_UID_ADMIN"; // <- Reemplaza esto por tu UID
 
-    // Esperar resultado de redirección (solo la primera vez)
-    auth.getRedirectResult()
-      .then((result) => {
-        if (result.user) {
-          currentUID = result.user.uid;
-          console.log("✅ UID del administrador:", currentUID);
-          estado.textContent = `👋 Bienvenido ${result.user.displayName}`;
-          estado.style.color = "blue";
-        } else {
-          // Si no hay sesión, redirige a iniciar
-          const provider = new firebase.auth.GoogleAuthProvider();
-          auth.signInWithRedirect(provider);
-        }
-      })
-      .catch((error) => {
-        console.error("❌ Error al autenticar:", error);
-        estado.textContent = "⚠️ Error al autenticar.";
-        estado.style.color = "red";
-      });
-
-    // Mostrar lista de números
+    // Mostrar números en tiempo real
     db.ref("numeros").on("value", (snapshot) => {
       lista.innerHTML = "";
       const data = snapshot.val();
@@ -144,21 +127,35 @@
       }
     }
 
-    function solicitarBorrado() {
-      if (!auth.currentUser) {
-        estado.textContent = "⚠️ Debes iniciar sesión para borrar.";
+    function borrarLista() {
+      if (!auth.currentUser || auth.currentUser.uid !== UID_ADMIN) {
+        estado.textContent = "❌ No tienes permisos para borrar.";
         estado.style.color = "red";
         return;
       }
-
-      db.ref("control/borrado").set({
-        por: currentUID,
-        fecha: new Date().toISOString()
-      });
-
       db.ref("numeros").remove();
-      estado.textContent = "🧹 Lista borrada por el administrador.";
+      estado.textContent = "🧹 Lista borrada por admin.";
       estado.style.color = "blue";
+    }
+
+    function iniciarSesion() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .then((result) => {
+          const user = result.user;
+          console.log("UID:", user.uid);
+          estado.textContent = `👋 Autenticado como: ${user.displayName}`;
+          estado.style.color = "blue";
+
+          if (user.uid === UID_ADMIN) {
+            btnBorrar.disabled = false;
+          }
+        })
+        .catch((error) => {
+          console.error("❌ Error al iniciar sesión:", error);
+          estado.textContent = "⚠️ Error al iniciar sesión.";
+          estado.style.color = "red";
+        });
     }
   </script>
 </body>
