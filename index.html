@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Verificador de Números (Firebase)</title>
+  <title>Verificador de Números (Firebase + Auth)</title>
   <style>
     body {
       font-family: sans-serif;
@@ -44,16 +44,16 @@
   </div>
 
   <input type="text" id="inputNumero" placeholder="Ingresa un número" />
-  <div id="estado"></div>
+  <div id="estado">Autenticando...</div>
   <button onclick="borrarUltimo()">↩️ Borrar último</button>
-  <button onclick="solicitarClaveParaLimpiar()">🧹 Limpiar lista (solo admin)</button>
+  <button onclick="solicitarBorrado()">🧹 Limpiar lista (solo admin)</button>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
 
   <script>
-    // Configuración de Firebase (tuya)
     const firebaseConfig = {
       apiKey: "AIzaSyDe0bmw3ekpgFj3L_T1zvoh4DrScXCaWdI",
       authDomain: "verificador-numero.firebaseapp.com",
@@ -64,17 +64,33 @@
       appId: "1:255791592832:web:4e2681121e27eddab2bd65"
     };
 
-    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const auth = firebase.auth();
 
     const input = document.getElementById("inputNumero");
     const estado = document.getElementById("estado");
     const lista = document.getElementById("numeros");
 
     let ultimoIngresado = null;
+    let currentUID = null;
 
-    // Mostrar los números en tiempo real
+    // Iniciar sesión con Google automáticamente
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+      .then((result) => {
+        const user = result.user;
+        currentUID = user.uid;
+        console.log("✅ UID del administrador:", currentUID); // <- AQUÍ ESTÁ TU UID
+        estado.textContent = `👋 Bienvenido ${user.displayName}`;
+        estado.style.color = "blue";
+      })
+      .catch((error) => {
+        console.error("❌ Error al iniciar sesión:", error);
+        estado.textContent = "⚠️ Error al autenticar.";
+        estado.style.color = "red";
+      });
+
+    // Mostrar números en tiempo real
     db.ref("numeros").on("value", (snapshot) => {
       lista.innerHTML = "";
       const data = snapshot.val();
@@ -85,13 +101,13 @@
           li.textContent = n;
           lista.appendChild(li);
         });
-        ultimoIngresado = claves[claves.length - 1]; // Último ingresado
+        ultimoIngresado = claves[claves.length - 1];
       } else {
         ultimoIngresado = null;
       }
     });
 
-    // Ingreso de número
+    // Agregar número
     input.addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
         const valor = input.value.trim();
@@ -113,20 +129,6 @@
       }
     });
 
-    // 🔐 Borrar toda la lista solo con clave
-    function solicitarClaveParaLimpiar() {
-      const clave = prompt("Introduce la clave secreta para borrar la lista:");
-      if (clave === "Antonio2000") {
-        db.ref("numeros").remove();
-        estado.textContent = "🧹 Lista global limpiada.";
-        estado.style.color = "blue";
-      } else {
-        estado.textContent = "❌ Clave incorrecta. No se ha borrado nada.";
-        estado.style.color = "red";
-      }
-    }
-
-    // ↩️ Borrar el último número ingresado
     function borrarUltimo() {
       if (ultimoIngresado) {
         db.ref("numeros/" + ultimoIngresado).remove();
@@ -136,6 +138,24 @@
         estado.textContent = "⚠️ No hay números para borrar.";
         estado.style.color = "gray";
       }
+    }
+
+    function solicitarBorrado() {
+      if (!auth.currentUser) {
+        estado.textContent = "⚠️ Debes iniciar sesión para borrar.";
+        estado.style.color = "red";
+        return;
+      }
+
+      // Verificamos si el UID coincide con el permitido en las reglas
+      db.ref("control/borrado").set({
+        por: currentUID,
+        fecha: new Date().toISOString()
+      });
+
+      db.ref("numeros").remove();
+      estado.textContent = "🧹 Lista borrada por el administrador.";
+      estado.style.color = "blue";
     }
   </script>
 </body>
