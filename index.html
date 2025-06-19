@@ -90,17 +90,22 @@
       lista.innerHTML = "";
       const data = snapshot.val();
       numerosActuales = [];
+
       if (data) {
-        const claves = Object.keys(data);
+        const claves = Object.entries(data)
+          .sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0))
+          .map(([clave]) => clave);
+
         claves.forEach((n) => {
           const li = document.createElement("li");
           li.textContent = n;
           lista.appendChild(li);
           numerosActuales.push(n);
         });
+
         ultimoIngresado = claves[claves.length - 1];
 
-        // Scroll automático en contenedor correcto
+        // Scroll automático
         const contenedor = document.getElementById("lista");
         contenedor.scrollTop = contenedor.scrollHeight;
       } else {
@@ -122,7 +127,7 @@
           estado.textContent = "❌ Número ya usado.";
           estado.style.color = "red";
         } else {
-          numeroRef.set(true);
+          numeroRef.set({ timestamp: Date.now() });
           estado.textContent = "✅ Número disponible.";
           estado.style.color = "green";
           ultimoIngresado = valor;
